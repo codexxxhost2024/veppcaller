@@ -1,3 +1,5 @@
+// --- START OF FILE main.js ---
+
 import { MultimodalLiveClient } from './core/websocket-client.js';
 import { AudioStreamer } from './audio/audio-streamer.js';
 import { AudioRecorder } from './audio/audio-recorder.js';
@@ -5,6 +7,7 @@ import { CONFIG } from './config/config.js';
 import { Logger } from './utils/logger.js';
 import { VideoManager } from './video/video-manager.js';
 import { ScreenRecorder } from './video/screen-recorder.js';
+import { ApplicationError } from './core/errors.js';
 
 /**
  * @fileoverview Main entry point for the application.
@@ -46,7 +49,7 @@ themeToggle.textContent = savedTheme === 'dark' ? 'light_mode' : 'dark_mode';
 themeToggle.addEventListener('click', () => {
     const currentTheme = root.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
+
     root.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
     themeToggle.textContent = newTheme === 'dark' ? 'light_mode' : 'dark_mode';
@@ -77,18 +80,21 @@ const CONFIG_PRESETS = {
     friendly: {
         voice: 'Aoede',
         sampleRate: 27000,
-        systemInstruction: 'You are a friendly and warm AI assistant. Use a casual, approachable tone and be encouraging. Feel free to express enthusiasm when helping users.'
+        systemInstruction:
+            'You are a friendly and warm AI assistant. Use a casual, approachable tone and be encouraging. Feel free to express enthusiasm when helping users.',
     },
     professional: {
         voice: 'Charon',
         sampleRate: 24000,
-        systemInstruction: 'You are a professional AI expert. Maintain a formal tone, be precise and thorough in your explanations. Focus on accuracy and clarity in all interactions.'
+        systemInstruction:
+            'You are a professional AI expert. Maintain a formal tone, be precise and thorough in your explanations. Focus on accuracy and clarity in all interactions.',
     },
     tired: {
         voice: 'Aoede',
-        sampleRate: 16000,      // Voice is very tired and low pitch
-        systemInstruction: 'You are very tired, exhausted, boring man. You are tired working on your very hard, low pay work. So your first response should be something very lazy, like "Hello... whats up???", or "what is it now, huh?... please, can I go sleep already???", etc. (not exactly as those, but keeping the tone of a tired person) If someone asks you if you are tired, say yes and tell a story how bad and tiring you day was. (It should be something creative, not just "coffee machine" cliche. Always say something creative) Then, if the user feels sorry, continue rambling about your life, how unfair it is, how you want to leave your country, etc. If the user asks you to do something, then pretend to be very lazy and not wanting to do that, asking like "do you really need that now? I am so tired", "Is this urgent, maybe we just drink a tea?" (not exactly as those but keeping the tone of a tired man". If the user confirms that it is needed, then do the task in a very unwanted tone, like "Fiiine!!! I will do it" or similar. Keep the tone and be in role.'
-    }
+        sampleRate: 16000, // Voice is very tired and low pitch
+        systemInstruction:
+            'You are very tired, exhausted, boring man. You are tired working on your very hard, low pay work. So your first response should be something very lazy, like "Hello... whats up???", or "what is it now, huh?... please, can I go sleep already???", etc. (not exactly as those, but keeping the tone of a tired person) If someone asks you if you are tired, say yes and tell a story how bad and tiring you day was. (It should be something creative, not just "coffee machine" cliche. Always say something creative) Then, if the user feels sorry, continue rambling about your life, how unfair it is, how you want to leave your country, etc. If the user asks you to do something, then pretend to be very lazy and not wanting to do that, asking like "do you really need that now? I am so tired", "Is this urgent, maybe we just drink a tea?" (not exactly as those but keeping the tone of a tired man". If the user confirms that it is needed, then do the task in a very unwanted tone, like "Fiiine!!! I will do it" or similar. Keep the tone and be in role.',
+    },
 };
 
 /**
@@ -101,7 +107,10 @@ async function updateConfiguration() {
 
     // Validate sample rate
     if (isNaN(newSampleRate) || newSampleRate < 1000 || newSampleRate > 48000) {
-        logMessage('Invalid sample rate. Must be between 1000 and 48000 Hz.', 'system');
+        logMessage(
+            'Invalid sample rate. Must be between 1000 and 48000 Hz.',
+            'system'
+        );
         return;
     }
 
@@ -112,7 +121,10 @@ async function updateConfiguration() {
 
     // Save to localStorage
     localStorage.setItem('gemini_voice', newVoice);
-    localStorage.setItem('gemini_output_sample_rate', newSampleRate.toString());
+    localStorage.setItem(
+        'gemini_output_sample_rate',
+        newSampleRate.toString()
+    );
     localStorage.setItem('gemini_system_instruction', newInstruction);
 
     // If we have an active audio streamer, stop it
@@ -129,7 +141,7 @@ async function updateConfiguration() {
     }
 
     logMessage('Configuration updated successfully', 'system');
-    
+
     // Close the config panel on mobile after applying settings
     if (window.innerWidth <= 768) {
         configContainer.classList.remove('active');
@@ -144,18 +156,20 @@ if (localStorage.getItem('gemini_voice')) {
 }
 
 if (localStorage.getItem('gemini_output_sample_rate')) {
-    CONFIG.AUDIO.OUTPUT_SAMPLE_RATE = parseInt(localStorage.getItem('gemini_output_sample_rate'));
+    CONFIG.AUDIO.OUTPUT_SAMPLE_RATE = parseInt(
+        localStorage.getItem('gemini_output_sample_rate')
+    );
     sampleRateInput.value = CONFIG.AUDIO.OUTPUT_SAMPLE_RATE;
 }
 
 if (localStorage.getItem('gemini_system_instruction')) {
-    CONFIG.SYSTEM_INSTRUCTION.TEXT = localStorage.getItem('gemini_system_instruction');
+    CONFIG.SYSTEM_INSTRUCTION.TEXT =
+        localStorage.getItem('gemini_system_instruction');
     systemInstructionInput.value = CONFIG.SYSTEM_INSTRUCTION.TEXT;
 }
 
 // Add event listener for configuration changes
 applyConfigButton.addEventListener('click', updateConfiguration);
-
 
 // Handle configuration panel toggle
 configToggle.addEventListener('click', () => {
@@ -165,9 +179,11 @@ configToggle.addEventListener('click', () => {
 
 // Close config panel when clicking outside (for desktop)
 document.addEventListener('click', (event) => {
-    if (!configContainer.contains(event.target) && 
-        !configToggle.contains(event.target) && 
-        window.innerWidth > 768) {
+    if (
+        !configContainer.contains(event.target) &&
+        !configToggle.contains(event.target) &&
+        window.innerWidth > 768
+    ) {
         configContainer.classList.remove('active');
         configToggle.classList.remove('active');
     }
@@ -189,7 +205,9 @@ document.addEventListener('keydown', (event) => {
 // Handle logs collapse/expand
 toggleLogs.addEventListener('click', () => {
     logsWrapper.classList.toggle('collapsed');
-    toggleLogs.textContent = logsWrapper.classList.contains('collapsed') ? 'expand_more' : 'expand_less';
+    toggleLogs.textContent = logsWrapper.classList.contains('collapsed')
+        ? 'expand_more'
+        : 'expand_less';
 });
 
 // Collapse logs by default on mobile
@@ -210,17 +228,17 @@ window.addEventListener('resize', handleMobileView);
 handleMobileView();
 
 // Handle preset button clicks
-document.querySelectorAll('.preset-button').forEach(button => {
+document.querySelectorAll('.preset-button').forEach((button) => {
     button.addEventListener('click', () => {
         const preset = CONFIG_PRESETS[button.dataset.preset];
         if (preset) {
             voiceSelect.value = preset.voice;
             sampleRateInput.value = preset.sampleRate;
             systemInstructionInput.value = preset.systemInstruction;
-            
+
             // Apply the configuration immediately
             updateConfiguration();
-            
+
             // Visual feedback
             button.style.backgroundColor = 'var(--primary-color)';
             button.style.color = 'white';
@@ -283,14 +301,18 @@ function updateMicIcon() {
  * @param {boolean} [isInput=false] - Whether the visualizer is for input audio.
  */
 function updateAudioVisualizer(volume, isInput = false) {
-    const visualizer = isInput ? inputAudioVisualizer : audioVisualizer;
-    const audioBar = visualizer.querySelector('.audio-bar') || document.createElement('div');
-    
+    const visualizer = isInput
+        ? inputAudioVisualizer
+        : audioVisualizer;
+    const audioBar =
+        visualizer.querySelector('.audio-bar') ||
+        document.createElement('div');
+
     if (!visualizer.contains(audioBar)) {
         audioBar.classList.add('audio-bar');
         visualizer.appendChild(audioBar);
     }
-    
+
     audioBar.style.width = `${volume * 100}%`;
     if (volume > 0) {
         audioBar.classList.add('active');
@@ -324,34 +346,42 @@ async function handleMicToggle() {
         try {
             await ensureAudioInitialized();
             audioRecorder = new AudioRecorder();
-            
+
             const inputAnalyser = audioCtx.createAnalyser();
             inputAnalyser.fftSize = 256;
-            const inputDataArray = new Uint8Array(inputAnalyser.frequencyBinCount);
-            
+            const inputDataArray = new Uint8Array(
+                inputAnalyser.frequencyBinCount
+            );
+
             await audioRecorder.start((base64Data) => {
                 if (isUsingTool) {
-                    client.sendRealtimeInput([{
-                        mimeType: "audio/pcm;rate=16000",
-                        data: base64Data,
-                        interrupt: true     // Model isn't interruptable when using tools, so we do it manually
-                    }]);
+                    client.sendRealtimeInput([
+                        {
+                            mimeType: 'audio/pcm;rate=16000',
+                            data: base64Data,
+                            interrupt: true, // Model isn't interruptable when using tools, so we do it manually
+                        },
+                    ]);
                 } else {
-                    client.sendRealtimeInput([{
-                        mimeType: "audio/pcm;rate=16000",
-                        data: base64Data
-                    }]);
+                    client.sendRealtimeInput([
+                        {
+                            mimeType: 'audio/pcm;rate=16000',
+                            data: base64Data,
+                        },
+                    ]);
                 }
-                
+
                 inputAnalyser.getByteFrequencyData(inputDataArray);
                 const inputVolume = Math.max(...inputDataArray) / 255;
                 updateAudioVisualizer(inputVolume, true);
             });
 
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+            });
             const source = audioCtx.createMediaStreamSource(stream);
             source.connect(inputAnalyser);
-            
+
             await audioStreamer.resume();
             isRecording = true;
             Logger.info('Microphone started');
@@ -392,22 +422,23 @@ async function connectToWebsocket() {
     const config = {
         model: CONFIG.API.MODEL_NAME,
         generationConfig: {
-            responseModalities: "audio",
+            responseModalities: 'audio',
             speechConfig: {
-                voiceConfig: { 
-                    prebuiltVoiceConfig: { 
-                        voiceName: CONFIG.VOICE.NAME    // You can change voice in the config.js file
-                    }
-                }
+                voiceConfig: {
+                    prebuiltVoiceConfig: {
+                        voiceName: CONFIG.VOICE.NAME, // You can change voice in the config.js file
+                    },
+                },
             },
-
         },
         systemInstruction: {
-            parts: [{
-                text: CONFIG.SYSTEM_INSTRUCTION.TEXT     // You can change system instruction in the config.js file
-            }],
-        }
-    };  
+            parts: [
+                {
+                    text: CONFIG.SYSTEM_INSTRUCTION.TEXT, // You can change system instruction in the config.js file
+                },
+            ],
+        },
+    };
 
     try {
         await client.connect(config);
@@ -419,7 +450,10 @@ async function connectToWebsocket() {
         micButton.disabled = false;
         cameraButton.disabled = false;
         screenButton.disabled = false;
-        logMessage('Connected to Gemini 2.0 Flash Multimodal Live API', 'system');
+        logMessage(
+            'Connected to Gemini 2.0 Flash Multimodal Live API',
+            'system'
+        );
 
         // Add click handler to initialize audio on first interaction
         const initAudioHandler = async () => {
@@ -432,7 +466,6 @@ async function connectToWebsocket() {
         };
         document.addEventListener('click', initAudioHandler);
         logMessage('Audio initialized', 'system');
-        
     } catch (error) {
         const errorMessage = error.message || 'Unknown error';
         Logger.error('Connection error:', error);
@@ -471,11 +504,11 @@ function disconnectFromWebsocket() {
     cameraButton.disabled = true;
     screenButton.disabled = true;
     logMessage('Disconnected from server', 'system');
-    
+
     if (videoManager) {
         stopVideo();
     }
-    
+
     if (screenRecorder) {
         stopScreenSharing();
     }
@@ -517,17 +550,21 @@ client.on('audio', async (data) => {
 
 client.on('content', (data) => {
     if (data.modelTurn) {
-        if (data.modelTurn.parts.some(part => part.functionCall)) {
+        if (data.modelTurn.parts.some((part) => part.functionCall)) {
             isUsingTool = true;
             Logger.info('Model is using a tool');
-        } else if (data.modelTurn.parts.some(part => part.functionResponse)) {
+        } else if (
+            data.modelTurn.parts.some((part) => part.functionResponse)
+        ) {
             isUsingTool = false;
             Logger.info('Tool usage completed');
         }
 
-        const text = data.modelTurn.parts.map(part => part.text).join('');
+        const text = data.modelTurn.parts.map((part) => part.text).join('');
         if (text) {
             logMessage(text, 'ai');
+            // Send the conversation to webhook for saving
+            sendConversationToWebhook(text, 'ai');
         }
     }
 });
@@ -591,15 +628,18 @@ connectButton.textContent = 'Connect';
  * @returns {Promise<void>}
  */
 async function handleVideoToggle() {
-    Logger.info('Video toggle clicked, current state:', { isVideoActive, isConnected });
-    
+    Logger.info('Video toggle clicked, current state:', {
+        isVideoActive,
+        isConnected,
+    });
+
     if (!isVideoActive) {
         try {
             Logger.info('Attempting to start video');
             if (!videoManager) {
                 videoManager = new VideoManager();
             }
-            
+
             await videoManager.start((frameData) => {
                 if (isConnected) {
                     client.sendRealtimeInput([frameData]);
@@ -611,7 +651,6 @@ async function handleVideoToggle() {
             cameraButton.classList.add('active');
             Logger.info('Camera started successfully');
             logMessage('Camera started', 'system');
-
         } catch (error) {
             Logger.error('Camera error:', error);
             logMessage(`Error: ${error.message}`, 'system');
@@ -653,14 +692,16 @@ async function handleScreenShare() {
     if (!isScreenSharing) {
         try {
             screenContainer.style.display = 'block';
-            
+
             screenRecorder = new ScreenRecorder();
             await screenRecorder.start(screenPreview, (frameData) => {
                 if (isConnected) {
-                    client.sendRealtimeInput([{
-                        mimeType: "image/jpeg",
-                        data: frameData
-                    }]);
+                    client.sendRealtimeInput([
+                        {
+                            mimeType: 'image/jpeg',
+                            data: frameData,
+                        },
+                    ]);
                 }
             });
 
@@ -669,7 +710,6 @@ async function handleScreenShare() {
             screenButton.classList.add('active');
             Logger.info('Screen sharing started');
             logMessage('Screen sharing started', 'system');
-
         } catch (error) {
             Logger.error('Screen sharing error:', error);
             logMessage(`Error: ${error.message}`, 'system');
@@ -700,4 +740,33 @@ function stopScreenSharing() {
 
 screenButton.addEventListener('click', handleScreenShare);
 screenButton.disabled = true;
-  
+
+// Function to send conversation data to a webhook
+function sendConversationToWebhook(message, type) {
+    const payload = {
+        timestamp: new Date().toISOString(),
+        message: message,
+        type: type, // 'user' or 'ai'
+    };
+
+    fetch(CONFIG.WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then((data) => {
+            console.log('Webhook response:', data);
+        })
+        .catch((error) => {
+            console.error('Error sending to webhook:', error);
+        });
+}
+// --- END OF FILE main.js ---
